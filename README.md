@@ -48,7 +48,7 @@ The Lasso Regression model consistently demonstrated the lowest Mean Squared Err
 ### Lasso Regression: Actual vs. Predicted Values
 
 (Embed the plot from your PowerPoint here, or link to it directly if embedding is not feasible or desirable for file size)
-![Lasso Regression: Actual vs. Predicted Values](https://github.com/your-username/your-repo-name/blob/main/path/to/your/lasso_plot.png)
+![Lasso Regression: Actual vs. Predicted Values]([https://github.com/your-username/your-repo-name/blob/main/path/to/your/lasso_plot.png](https://github.com/ngee4848/NBA-FAS-Project/blob/main/Lasso%20Regresion%20vs%20Predicted%20Values.jpg))
 
 *Note: The diagonal red dashed line represents perfect predictions (Actual = Predicted).*
 
