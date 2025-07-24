@@ -46,8 +46,8 @@ The Lasso Regression model consistently demonstrated the lowest Mean Squared Err
 *Lasso Regression had the lowest MSE, indicating its predictions were closest to the actual values.*
 
 ### Lasso Regression: Actual vs. Predicted Values
-[Lasso Regression vs Predicted Values.jpg](Lasso Regression vs Predicted Values.jpg)
 
+![Lasso Regression: Actual vs. Predicted Values](Lasso Regression vs Predicted Values.jpg)
 
 *Note: The diagonal red dashed line represents perfect predictions (Actual = Predicted).*
 
