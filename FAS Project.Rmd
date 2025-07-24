@@ -1,0 +1,211 @@
+---
+title: "FAS Project"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*.
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
+
+```{r}
+#Load CSV File
+X = read.csv("fas_2024.csv")
+head(X)
+
+three = X$three_pct_season
+```
+
+```{r warning = FALSE}
+#Descriptive Stats 
+library(pastecs)
+stat.desc(three)
+
+library(psych)
+#create summary table
+describe(three, fast = TRUE)
+
+```
+
+```{r}
+#Linear Regression With All variables 
+
+#First Create data frame without player names
+X1 = X[,-1]
+
+#Create Train Data 
+set.seed(8)
+train=sample(length(three),length(three)*.80,replace=FALSE)
+train_all_data = X1[train,]
+
+#Run Model on Train Data
+lm_all = lm(train_all_data, formula = train_all_data$three_pct_season  ~ .)
+summary(lm_all)
+
+#Regression shows a significant p- value of 1.523e-08
+
+#New Data Frame with Predicted Results 
+X_All_Result = train_all_data
+X_All_Result$Pred_three_pct_season = lm_all$fitted.values
+
+  
+#Test out the model on Test Set
+pred=predict(lm_all,X1[-train,])
+mean((X1$three_pct_season[-train]-pred)^2) #Mean Squared Error 
+
+#Test MSE = 0.0008247561 
+```
+
+```{r}
+#Consider a Model without All the Variables
+
+#Stepwise Regressions
+
+initial =  lm(train_all_data$three_pct_season ~ 1, data = train_all_data) #intercept only model
+
+#Forward Regression
+forward = step(initial, direction='forward', scope=formula(lm_all), trace=0)
+
+#Results of forward 
+forward$anova
+forward$coefficients
+
+#Forward Model
+X_Forward = X1[train,]
+X_Forward$Pred_three_pct_season = forward$fitted.values
+summary(forward)
+# p value of 9.411e-11
+  
+#Test out the model on Test Data
+pred_forward=predict(forward,X1[-train,])
+mean((X1$three_pct_season[-train] - pred_forward)^2) #Mean Squared Error 
+
+#Test MSE = 0.000786983 
+```
+
+
+```{r}
+#Backward Regression
+backward = step(lm_all, direction='backward', scope=formula(lm_all), trace=0)
+
+#Results of backward
+backward$anova
+backward$coefficients
+
+#Backward Model
+X_backward = X1[train,]
+X_backward$Pred_three_pct_season = backward$fitted.values
+summary(backward)
+  
+#Test out the model on Testing Set
+pred_backward=predict(backward,X1[-train,])
+mean((X1$three_pct_season[-train]- pred_backward)^2) #Mean Squared Error 
+
+#Test MSE = 0.000786983
+```
+
+```{r}
+#Lasso Regression
+library(glmnet)
+
+#Correlation Matrix
+cor(X1[, "three_pct_season"], X1)
+
+#Convert x variables to matrix form
+X_L = as.matrix(X1[,-1])
+train_lasso = X_L[train,]
+test_lasso = X1[-train,]
+
+# Lasso regression using cv.glmnet for cross-validation
+Lasso = cv.glmnet(x = train_lasso, y = train_all_data$three_pct_season, alpha = 1)
+
+#Predict Values on Test Set 
+pred_lasso = predict(Lasso, newx = X_L[-train,], s = "lambda.min")
+
+
+# Test out Accuracy With Mean Squared Error 
+(mean((test_lasso$three_pct_season- pred_lasso  ))^2)
+# Test MSE = 0.0001444975
+
+# Plot actual vs. predicted values
+plot(test_lasso$three_pct_season, pred_lasso,
+     xlab = "Actual Values in Test Set", ylab = "Predicted Values in Test Set",
+     main = "Lasso Regression: Actual vs. Predicted Values",
+     col = "blue", pch = 19)
+abline(a = 0, b = 1, col = "red", lty = 2)
+
+
+```
+
+
+```{r}
+#Support Vector Machine 
+library(e1071)
+
+#Split into Train and Test Data
+train_all_data = X1[train,]
+test_all_data = X1[-train,]
+
+is.data.frame(train_all_data)
+
+#Feature Importance 
+library(randomForest)
+rf_model = randomForest( train_all_data$three_pct_season~ ., data = train_all_data)
+importance(rf_model)
+varImpPlot(rf_model)
+
+#Elimnated all predictors with IncNodePurity less than .010
+
+tune.out_FI = tune(svm,train_all_data$three_pct_season ~ 
+                  
+                  train_all_data$upr_paint_pct_oct_nov +
+                  
+                  train_all_data$three_non_cnr_pct_oct_nov +
+                  train_all_data$three_cnr_pct_oct_nov +
+                  train_all_data$ft_pct_oct_nov +
+                  
+                
+                  
+                  
+                  train_all_data$three_cnr_shots_oct_nov, 
+                data=train_all_data, kernel="linear", 
+                ranges=list(cost=c(0.001,.01,.1,1,5,10,100), 
+                gamma=c(.5,1,2,3,4))) 
+summary(tune.out_FI) #See the error for different cost values
+
+best.svm.class_FI = tune.out_FI$best.model #Choose the best model
+best.svm.class_FI$cost # Cost found
+best.svm.class_FI$gamma # Gamma found
+summary(best.svm.class_FI)
+
+#Predict on the Test Set 
+best.svm.pred_FI=predict(best.svm.class_FI,newdata = test_all_data)
+
+
+# Test out Accuracy With Mean Squared Error 
+(mean((best.svm.pred_FI[1:22] - test_all_data$three_pct_season)^2))
+
+#Test MSE = 0.003267626
+```
+
+```{r}
+# Plot actual vs. predicted values
+plot(test_all_data$three_pct_season, best.svm.pred_FI[1:22],
+     xlab = "Actual Values in Test Set", ylab = "Predicted Values in Test Set",
+     main = "SVM Regression: Actual vs. Predicted Values",
+     col = "blue", pch = 19)
+
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
